@@ -1,0 +1,100 @@
+maastoruutu = "START"
+action = ""
+print("\n"*1000)
+printStory()
+show_location(maastoruutu)
+show_passages(maastoruutu)
+
+while action!="quit" and maastoruutu !="END":
+    print("")
+    string=str(input("Your action? ")).split()
+    if len(string)>=1:
+        action = string[0].lower()
+    else:
+        action = ""
+    if len(string)>=2:
+        target = string[len(string)-1].lower()
+    else:
+        target = ""
+    print("")
+    if (action=="get" or action =="take" or action=="pick" or action=="grab") and target!="":
+        get_target(target)
+    elif (action=="look" or action=="examine" or action=="view" or action=="check"):
+        if target=="around" or target=="":
+            show_objects(maastoruutu)
+            show_passages(maastoruutu)
+    elif action=="inventory" or action=="i" or action=="inv":
+        inventory()
+    elif action=="drink":
+        if target=="":
+            print("Use what?")
+        elif target=="potion":
+            usepotion();
+        else:
+            print("I don't know what that is.")
+    elif action=="check" or action=="look" or action=="examine" or action=="see" or action=="show":
+        if target=="stats":
+            spec_stats()
+    elif action=="pull" or action=="push" or action=="turn" or action=="use":
+        if target=="lever":
+            spec_pushlever();
+        if maastoruutu=="ROOM51" and target=="yellow key" or target=="key":
+            spec_usekey();
+        if maastoruutu=="ROOM57" and target=="key":
+            spec_usekey();
+        else:
+            print("hahaha")
+    elif action=="attack" or action=="strike" or action=="hit":
+        if target=="monster" or target=="weapon" or target=="":
+            spec_useweapon();
+    elif action=="n" or action=="e" or action=="s" or action=="w":
+        uusimaastoruutu = move(maastoruutu,action)
+        if maastoruutu==uusimaastoruutu:
+            print("You can't move to that direction.");
+        else:
+            maastoruutu = uusimaastoruutu
+            show_location(maastoruutu)
+            show_passages(maastoruutu)
+    elif action=="north" or target=="north":
+        action = "n"
+        uusimaastoruutu = move(maastoruutu,action)
+        if maastoruutu==uusimaastoruutu:
+            print("You can't move to that direction.");
+        else:
+            maastoruutu = uusimaastoruutu
+            show_location(maastoruutu)
+            show_passages(maastoruutu)
+    elif action=="south" or target=="south":
+        action = "s"
+        uusimaastoruutu = move(maastoruutu,action)
+        if maastoruutu==uusimaastoruutu:
+            print("You can't move to that direction.");
+        else:
+            maastoruutu = uusimaastoruutu
+            show_location(maastoruutu)
+            show_passages(maastoruutu)
+    elif action=="east" or target=="east":
+        action = "e"
+        uusimaastoruutu = move(maastoruutu,action)
+        if maastoruutu==uusimaastoruutu:
+            print("You can't move to that direction.");
+        else:
+            maastoruutu = uusimaastoruutu
+            show_location(maastoruutu)
+            show_passages(maastoruutu)
+    elif action=="west" or target=="west":
+        action = "w"
+        uusimaastoruutu = move(maastoruutu,action)
+        if maastoruutu==uusimaastoruutu:
+            print("You can't move to that direction.");
+        else:
+            maastoruutu = uusimaastoruutu
+            show_location(maastoruutu)
+            show_passages(maastoruutu)
+    elif action !="quit" and action!="":
+        print("How to" + action + "?")
+if (maastoruutu=="END"):
+    print("Nice...")
+else:
+    print("Bye!")
+db.rollback()
