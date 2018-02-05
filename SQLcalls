@@ -1,0 +1,154 @@
+import mysql.connector
+db = mysql.connector.connect(host="localhost",
+                      user="dbuser",
+                      passwd="dbpass",
+                      db="peli",
+                      buffered=True)
+
+def printStory():
+    print("STORY DESCRIPTION")
+    print("\n")
+    return
+
+def show_location(maastoruutu):
+    cur = db.cursor()
+    sql = "SELECT Description, DETAILS FROM MAASTORUUTU WHERE MAASTORUUTUID='" + maastoruutu + "'"
+    cur.execute(sql)
+    for row in cur:
+        print (row[0])
+        if (row[1]!=""):
+            print(row[1])
+    return
+
+def show_objects(maastoruutu):
+    cur = db.cursor()
+    sql = "SELECT ESINENIMI, TYYPPIID FROM ESINETYYPPI WHERE TYYPPIID IN(SELECT TYYPPIID FROM ESINEET, PELIHAHMO WHERE ESINEET.MAASTORUUTU='" + maastoruutu + "')"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("You see the following:")
+        for row in cur.fetchall():
+            if row[1]>=1:
+                print (" - " + row[0])
+    else:
+        print("You don't see anything useful here.")
+    return
+def get_target(target):
+    cur = db.cursor()
+    sql = "UPDATE ESINEET, PELIHAHMO SET ESINEET.PELIHAHMOID=1 WHERE TYYPPIID IN (SELECT TYYPPIID FROM ESINETYYPPI WHERE ESINENIMI='" + target + "' AND '" + maastoruutu + "'=ESINEET.MAASTORUUTU)"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("You take the " + target + ".")
+        sql = "UPDATE PELIHAHMO, ESINETYYPPI SET PELIHAHMO.TAISTELUVOIMA=PELIHAHMO.TAISTELUVOIMA + ESINETYYPPI.TAISTELUVOIMA WHERE TYYPPIID IN(SELECT TYYPPIID FROM ESINEET WHERE ESINEET.PELIHAHMOID=1 AND '" + maastoruutu + "'=ESINEET.MAASTORUUTU)"
+        cur.execute(sql)
+    else:
+        print("You can't take the " + target + ".")
+    return cur.rowcount
+def spec_pushlever():
+    cur = db.cursor()
+    sql = "SELECT ESINEID FROM ESINE WHERE ESINEID='LEVER'"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("You pull the lever.")
+        sql = "UPDATE SIIRTO SET Locked=FALSE WHERE ID='P21' AND Locked=TRUE"
+        cur.execute(sql)
+        print("You hear a distant gate opening somewhere.")
+    return
+
+def show_passages(maastoruutu):
+    print("The possible exits are:")
+    cur = db.cursor()
+    sql = "SELECT Description, Locked, Locknote FROM SIIRTO INNER JOIN SUUNTA ON SIIRTO.SUUNTA=SUUNTA.SUUNTAID WHERE Source='" + maastoruutu + "'"
+    cur.execute(sql)
+    i = 0;
+    for row in cur.fetchall():
+        print (row[0], end=' ')
+        i = i+1
+        if row[1]==1:
+            print("("+ row[2] + ")", end=' ')
+        if i < cur.rowcount:
+            print(",", end=' ')
+    print("")
+    return
+def look_around(maastoruutu):
+    print("-"*80)
+    show_location(maastoruutu)
+    if maastoruutu!="EXIT":
+        show_objects(maastoruutu)
+        show_passages(maastoruutu)   
+    return
+def inventory():
+    cur = db.cursor()
+    sql = "SELECT ESINENIMI FROM ESINETYYPPI WHERE TYYPPIID IN (SELECT TYYPPIID FROM ESINEET WHERE PELIHAHMOID=1)"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("You carry the following items:")
+        for row in cur.fetchall():
+            print (" - " + row[0])
+    else:
+        print("You don't carry anything.")
+    return
+
+def move(maastoruutu, suunta):
+    destination=maastoruutu
+    cur = db.cursor()
+    sql = "SELECT Destination FROM SIIRTO WHERE SUUNTA='" + suunta + "'AND Source='" + maastoruutu + "' AND LOCKED=0"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        for row in cur.fetchall():
+                destination = row[0]
+    else:
+        destination = maastoruutu;
+    return destination
+def usepotion():
+    cur = db.cursor()
+    sql = "SELECT TYYPPIID, ESINEID FROM ESINEET, PELIHAHMO WHERE ESINEET.TYYPPIID='11' AND ESINEET.PELIHAHMOID='1'"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        print("You used a potion and gained 50 health points.")
+        sql = "UPDATE PELIHAHMO SET KUNTOPISTEET=KUNTOPISTEET+50"
+        sql2 = "UPDATE ESINEET SET PELIHAHMOID=NULL WHERE TYYPPIID='11'"
+        cur.execute(sql)
+        cur.execute(sql2)
+    else:
+        print("You don't have a health potion in your inventory")
+    return
+def spec_usekey():
+    cur = db.cursor()
+    sql = "SELECT ESINENIMI FROM ESINETYYPPI WHERE ESINENIMI='Key' AND TYYPPIID IN (SELECT TYYPPIID FROM ESINEET WHERE ESINEET.PELIHAHMOID=1)"
+    cur.execute(sql)
+    if cur.rowcount>=1:
+        sql = "UPDATE SIIRTO, PELIHAHMO SET Locked=FALSE WHERE SIIRTO.SOURCE='" + maastoruutu + "' AND Locked=TRUE"
+        cur.execute(sql)
+        if cur.rowcount==1:
+            print("The door to the east is now unlocked.")
+    else:
+        print("You can't do that.")
+    return
+def spec_stats():
+    cur = db.cursor()
+    sql = "SELECT KUNTOPISTEET FROM PELIHAHMO"
+    cur.execute(sql)
+    for row in cur.fetchall():
+        print("Your health is:")
+        print (row[0])
+        sql = "SELECT TAISTELUVOIMA FROM PELIHAHMO"
+        cur.execute(sql)
+        for row2 in cur.fetchall():
+            print("Your battle power is:")
+            print (row2[0])
+    return
+def spec_useweapon():
+    cur = db.cursor()
+    print("You attacked the monster.")
+    sql = "UPDATE PELIHAHMO, MONSTERTYYPPI SET MONSTERTYYPPI.KUNTOPISTEET=MONSTERTYYPPI.KUNTOPISTEET - PELIHAHMO.TAISTELUVOIMA WHERE MONSTERTYYPPIID IN (SELECT MONSTERTYYPPIID FROM MONSTER WHERE '" + maastoruutu + "'=MONSTER.MAASTORUUTU)"
+    sql2 = "UPDATE PELIHAHMO, MONSTERTYYPPI SET PELIHAHMO.KUNTOPISTEET=PELIHAHMO.KUNTOPISTEET - MONSTERTYYPPI.TAISTELUVOIMA WHERE MONSTERTYYPPIID IN (SELECT MONSTERTYYPPIID FROM MONSTER WHERE '" + maastoruutu + "'=MONSTER.MAASTORUUTU)"
+    sql3 = "UPDATE MONSTER SET MONSTER.MAASTORUUTU=NULL WHERE MONSTERTYYPPIID IN(SELECT MONSTERTYYPPIID FROM MONSTERTYYPPI WHERE MONSTERTYYPPI.KUNTOPISTEET<=0)"
+    cur.execute(sql)
+    cur.execute(sql2)
+    cur.execute(sql3)
+    if cur.rowcount>=2:
+        print("You killed the monster.")
+        print("The door is no more blocked by the monster.")
+        sql = "UPDATE SIIRTO, PELIHAHMO SET SIIRTO.LOCKED=0 WHERE SIIRTO.SOURCE='" + maastoruutu + "' AND SIIRTO.LOCKED=1"
+        cur.execute(sql)
+    return
